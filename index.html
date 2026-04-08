@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CGN Discord Countdown</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #131314;
+      --surface-low: rgba(28, 27, 28, 0.72);
+      --surface: rgba(32, 31, 32, 0.82);
+      --surface-high: rgba(42, 42, 43, 0.88);
+      --surface-strong: rgba(19, 19, 20, 0.72);
+      --text: #e5e2e3;
+      --muted: rgba(229, 226, 227, 0.62);
+      --outline: rgba(76, 70, 59, 0.35);
+      --primary: #dcc48e;
+      --primary-dim: #b39d6a;
+      --shadow: 0 20px 40px rgba(0, 0, 0, 0.38);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(19, 19, 20, 0.6) 0%, rgba(19, 19, 20, 0.5) 28%, rgba(19, 19, 20, 0.88) 100%),
+        linear-gradient(90deg, rgba(19, 19, 20, 0.8) 0%, rgba(19, 19, 20, 0.35) 42%, rgba(19, 19, 20, 0.72) 100%),
+        url("ChatGPT Image Apr 8, 2026, 08_02_45 AM.png") center 18% / cover no-repeat;
+      z-index: -3;
+      transform: scale(1.02);
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 35%, rgba(220, 196, 142, 0.1), transparent 32%),
+        linear-gradient(180deg, rgba(19, 19, 20, 0) 58%, rgba(19, 19, 20, 0.92) 100%);
+      z-index: -2;
+      pointer-events: none;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 28px;
+      position: relative;
+    }
+
+    .hero {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(340px, 0.95fr);
+      gap: 48px;
+      align-items: center;
+    }
+
+    .hero-copy {
+      padding: 0;
+      max-width: 620px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3rem, 7vw, 6.2rem);
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+      max-width: 10ch;
+      text-transform: uppercase;
+    }
+
+    .hero-panel {
+      position: relative;
+      padding: 34px;
+      background: linear-gradient(180deg, rgba(24, 24, 25, 0.82), rgba(19, 19, 20, 0.92));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      min-width: 0;
+    }
+
+    .hero-panel::before,
+    .hero-panel::after {
+      content: "";
+      position: absolute;
+      background: rgba(220, 196, 142, 0.16);
+    }
+
+    .hero-panel::before {
+      top: -14px;
+      left: -14px;
+      width: 72px;
+      height: 1px;
+    }
+
+    .hero-panel::after {
+      top: -14px;
+      left: -14px;
+      width: 1px;
+      height: 72px;
+    }
+
+    .timer {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .time-box {
+      min-width: 0;
+      padding: 26px 12px 24px;
+      background: var(--surface-low);
+      text-align: center;
+    }
+
+    .time-value {
+      display: block;
+      color: var(--primary);
+      font-size: clamp(2.9rem, 5vw, 4.5rem);
+      line-height: 0.9;
+      font-weight: 700;
+      text-shadow: 0 0 15px rgba(220, 196, 142, 0.28);
+    }
+
+    .time-label {
+      display: block;
+      margin-top: 18px;
+      color: rgba(229, 226, 227, 0.44);
+      text-transform: uppercase;
+      letter-spacing: 0.32em;
+      font-size: 0.62rem;
+    }
+
+    .editor-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      margin-top: 28px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .primary-button,
+    .secondary-button {
+      padding: 14px 18px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.76rem;
+      transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
+    }
+
+    .primary-button {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dim));
+      color: #221b0a;
+      font-weight: 700;
+    }
+
+    .secondary-button {
+      color: var(--primary);
+      background: rgba(220, 196, 142, 0.06);
+      box-shadow: inset 0 0 0 1px rgba(220, 196, 142, 0.22);
+    }
+
+    .primary-button:hover,
+    .secondary-button:hover {
+      transform: translateY(-2px);
+    }
+
+    .editor-card {
+      display: grid;
+      gap: 18px;
+      padding: 20px;
+      background: var(--surface-high);
+      box-shadow: inset 0 0 0 1px rgba(76, 70, 59, 0.2);
+    }
+
+    .editor-card[hidden] {
+      display: none;
+    }
+
+    input[type="datetime-local"] {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid rgba(220, 196, 142, 0.24);
+      background: transparent;
+      color: var(--text);
+      padding: 14px 0 12px;
+      font: inherit;
+      outline: none;
+    }
+
+    input[type="datetime-local"]:focus {
+      border-bottom-color: var(--primary);
+    }
+
+    .editor-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 980px) {
+      body::before {
+        background:
+          linear-gradient(180deg, rgba(19, 19, 20, 0.68) 0%, rgba(19, 19, 20, 0.44) 18%, rgba(19, 19, 20, 0.92) 100%),
+          linear-gradient(90deg, rgba(19, 19, 20, 0.74) 0%, rgba(19, 19, 20, 0.18) 50%, rgba(19, 19, 20, 0.68) 100%),
+          url("ChatGPT Image Apr 8, 2026, 08_02_45 AM.png") 58% 12% / cover no-repeat;
+      }
+
+      .shell {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 28px;
+      }
+
+      .hero-copy {
+        max-width: none;
+      }
+
+      h1 {
+        max-width: 12ch;
+      }
+
+      .hero-panel {
+        padding: 24px 20px;
+      }
+
+      .timer {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .time-box {
+        aspect-ratio: 1 / 1;
+        display: grid;
+        place-items: center;
+        align-content: center;
+      }
+
+      .time-label {
+        margin-top: 12px;
+      }
+
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        padding: 20px 16px;
+      }
+
+      .hero {
+        padding-top: 8px;
+      }
+
+      h1 {
+        font-size: clamp(2.8rem, 14vw, 4.25rem);
+        max-width: none;
+      }
+
+      .time-box {
+        padding: 18px 10px;
+      }
+
+      .time-value {
+        font-size: clamp(2.8rem, 14vw, 4rem);
+      }
+
+      .time-label {
+        font-size: 0.58rem;
+        letter-spacing: 0.28em;
+      }
+
+      .editor-card {
+        padding: 16px;
+      }
+
+      .editor-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+      }
+
+      .primary-button,
+      .secondary-button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <main class="hero">
+      <section class="hero-copy" aria-label="Page introduction">
+        <h1>WHEN TO BE ON<br>CGN DISCORD</h1>
+      </section>
+
+      <section class="hero-panel" aria-label="Countdown module">
+        <div class="timer" aria-label="Countdown timer">
+          <div class="time-box">
+            <span class="time-value" id="days">00</span>
+            <span class="time-label">Days</span>
+          </div>
+          <div class="time-box">
+            <span class="time-value" id="hours">00</span>
+            <span class="time-label">Hours</span>
+          </div>
+          <div class="time-box">
+            <span class="time-value" id="minutes">00</span>
+            <span class="time-label">Minutes</span>
+          </div>
+          <div class="time-box">
+            <span class="time-value" id="seconds">00</span>
+            <span class="time-label">Seconds</span>
+          </div>
+        </div>
+
+        <div class="editor-wrap">
+          <button class="primary-button" id="editButton" type="button">Edit Date</button>
+
+          <form class="editor-card" id="editor" hidden>
+            <input id="meetingTime" name="meetingTime" type="datetime-local" required>
+            <div class="editor-actions">
+              <button class="secondary-button" id="cancelEditButton" type="button">Cancel</button>
+              <button class="primary-button" type="submit">Save</button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const storageKey = "cgn-discord-meeting-time";
+    const daysEl = document.getElementById("days");
+    const hoursEl = document.getElementById("hours");
+    const minutesEl = document.getElementById("minutes");
+    const secondsEl = document.getElementById("seconds");
+    const editButton = document.getElementById("editButton");
+    const editorForm = document.getElementById("editor");
+    const cancelEditButton = document.getElementById("cancelEditButton");
+    const meetingTimeInput = document.getElementById("meetingTime");
+
+    function getDefaultMeetingDate() {
+      const date = new Date();
+      date.setDate(date.getDate() + 1);
+      date.setHours(20, 0, 0, 0);
+      return date;
+    }
+
+    function formatForInput(date) {
+      const pad = (value) => String(value).padStart(2, "0");
+      return [
+        date.getFullYear(),
+        pad(date.getMonth() + 1),
+        pad(date.getDate())
+      ].join("-") + "T" + [
+        pad(date.getHours()),
+        pad(date.getMinutes())
+      ].join(":");
+    }
+
+    function loadMeetingDate() {
+      const savedValue = localStorage.getItem(storageKey);
+      const parsedSavedValue = savedValue ? new Date(savedValue) : null;
+
+      if (parsedSavedValue && !Number.isNaN(parsedSavedValue.getTime())) {
+        return parsedSavedValue;
+      }
+
+      const defaultDate = getDefaultMeetingDate();
+      localStorage.setItem(storageKey, defaultDate.toISOString());
+      return defaultDate;
+    }
+
+    let targetDate = loadMeetingDate();
+    meetingTimeInput.value = formatForInput(targetDate);
+
+    function openEditor() {
+      meetingTimeInput.value = formatForInput(targetDate);
+      editorForm.hidden = false;
+      editButton.hidden = true;
+      meetingTimeInput.focus();
+    }
+
+    function closeEditor() {
+      editorForm.hidden = true;
+      editButton.hidden = false;
+    }
+
+    function renderCountdown() {
+      const now = new Date();
+      const diff = targetDate.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        daysEl.textContent = "00";
+        hoursEl.textContent = "00";
+        minutesEl.textContent = "00";
+        secondsEl.textContent = "00";
+      } else {
+        const totalSeconds = Math.floor(diff / 1000);
+        const days = Math.floor(totalSeconds / 86400);
+        const hours = Math.floor((totalSeconds % 86400) / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        daysEl.textContent = String(days).padStart(2, "0");
+        hoursEl.textContent = String(hours).padStart(2, "0");
+        minutesEl.textContent = String(minutes).padStart(2, "0");
+        secondsEl.textContent = String(seconds).padStart(2, "0");
+      }
+    }
+
+    editorForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+
+      const nextDate = new Date(meetingTimeInput.value);
+      if (Number.isNaN(nextDate.getTime())) {
+        return;
+      }
+
+      targetDate = nextDate;
+      localStorage.setItem(storageKey, targetDate.toISOString());
+      renderCountdown();
+      closeEditor();
+    });
+
+    editButton.addEventListener("click", openEditor);
+    cancelEditButton.addEventListener("click", closeEditor);
+
+    renderCountdown();
+    setInterval(renderCountdown, 1000);
+  </script>
+</body>
+</html>
