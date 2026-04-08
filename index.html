@@ -125,10 +125,29 @@
       height: 72px;
     }
 
+    .panel-topbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 18px;
+    }
+
+    .display-stage {
+      min-height: 176px;
+      display: grid;
+      position: relative;
+    }
+
     .timer {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 14px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .display-stage > .timer,
+    .display-stage > .time-view {
+      grid-area: 1 / 1;
     }
 
     .time-box {
@@ -156,10 +175,51 @@
       font-size: 0.62rem;
     }
 
+    .time-view {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 100%;
+      height: 100%;
+      padding: 26px 24px 24px;
+      background: var(--surface-low);
+      text-align: center;
+    }
+
+    .time-view[hidden],
+    .timer[hidden] {
+      display: none;
+    }
+
+    .time-line {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: nowrap;
+      white-space: nowrap;
+      color: var(--primary);
+      font-size: clamp(2.1rem, 3.6vw, 3.12rem);
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-weight: 700;
+      text-shadow: 0 0 15px rgba(220, 196, 142, 0.28);
+    }
+
+    .time-zone {
+      color: rgba(229, 226, 227, 0.6);
+      font-size: 0.72rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      font-weight: 500;
+      text-shadow: none;
+    }
+
     .editor-wrap {
       display: flex;
       flex-direction: column;
-      align-items: stretch;
+      align-items: flex-end;
       gap: 14px;
       margin-top: 28px;
     }
@@ -180,6 +240,13 @@
       letter-spacing: 0.18em;
       font-size: 0.76rem;
       transition: transform 180ms ease, background-color 180ms ease, color 180ms ease;
+    }
+
+    .edit-button {
+      padding: 10px 14px;
+      font-size: 0.64rem;
+      letter-spacing: 0.16em;
+      align-self: flex-end;
     }
 
     .primary-button {
@@ -203,6 +270,7 @@
       display: grid;
       gap: 18px;
       padding: 20px;
+      width: 100%;
       background: var(--surface-high);
       box-shadow: inset 0 0 0 1px rgba(76, 70, 59, 0.2);
     }
@@ -264,6 +332,10 @@
         padding: 24px 20px;
       }
 
+      .display-stage {
+        min-height: 396px;
+      }
+
       .timer {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -282,6 +354,13 @@
     }
 
     @media (max-width: 640px) {
+      body::before {
+        background:
+          linear-gradient(180deg, rgba(19, 19, 20, 0.68) 0%, rgba(19, 19, 20, 0.44) 18%, rgba(19, 19, 20, 0.92) 100%),
+          linear-gradient(90deg, rgba(19, 19, 20, 0.74) 0%, rgba(19, 19, 20, 0.18) 50%, rgba(19, 19, 20, 0.68) 100%),
+          url("ChatGPT Image Apr 8, 2026, 08_02_45 AM.png") center 10% / cover no-repeat;
+      }
+
       .shell {
         padding: 20px 16px;
       }
@@ -303,6 +382,17 @@
         font-size: clamp(2.8rem, 14vw, 4rem);
       }
 
+      .time-line {
+        gap: 6px;
+        font-size: clamp(1.44rem, 7.2vw, 2.1rem);
+        line-height: 1;
+      }
+
+      .time-zone {
+        width: auto;
+        font-size: 0.56rem;
+      }
+
       .time-label {
         font-size: 0.58rem;
         letter-spacing: 0.28em;
@@ -321,6 +411,10 @@
       .secondary-button {
         width: 100%;
       }
+
+      .edit-button {
+        width: auto;
+      }
     }
   </style>
 </head>
@@ -328,31 +422,46 @@
   <div class="shell">
     <main class="hero">
       <section class="hero-copy" aria-label="Page introduction">
-        <h1>WHEN TO BE ON<br>CGN DISCORD</h1>
+        <h1>WHAT TIME<br>TO BE ON<br>CGN DISCORD</h1>
       </section>
 
       <section class="hero-panel" aria-label="Countdown module">
-        <div class="timer" aria-label="Countdown timer">
-          <div class="time-box">
-            <span class="time-value" id="days">00</span>
-            <span class="time-label">Days</span>
+        <div class="panel-topbar">
+          <button class="secondary-button" id="viewToggleButton" type="button">Time</button>
+        </div>
+
+        <div class="display-stage">
+          <div class="timer" aria-label="Countdown timer">
+            <div class="time-box">
+              <span class="time-value" id="days">00</span>
+              <span class="time-label">Days</span>
+            </div>
+            <div class="time-box">
+              <span class="time-value" id="hours">00</span>
+              <span class="time-label">Hours</span>
+            </div>
+            <div class="time-box">
+              <span class="time-value" id="minutes">00</span>
+              <span class="time-label">Minutes</span>
+            </div>
+            <div class="time-box">
+              <span class="time-value" id="seconds">00</span>
+              <span class="time-label">Seconds</span>
+            </div>
           </div>
-          <div class="time-box">
-            <span class="time-value" id="hours">00</span>
-            <span class="time-label">Hours</span>
-          </div>
-          <div class="time-box">
-            <span class="time-value" id="minutes">00</span>
-            <span class="time-label">Minutes</span>
-          </div>
-          <div class="time-box">
-            <span class="time-value" id="seconds">00</span>
-            <span class="time-label">Seconds</span>
+
+          <div class="time-view" id="timeView" hidden aria-label="Meeting date and time in CEST">
+            <div class="time-line">
+              <span id="cestDate">00/00</span>
+              <span>-</span>
+              <span id="cestTime">00:00</span>
+              <span class="time-zone" id="cestZone">CEST</span>
+            </div>
           </div>
         </div>
 
         <div class="editor-wrap">
-          <button class="primary-button" id="editButton" type="button">Edit Date</button>
+          <button class="primary-button edit-button" id="editButton" type="button">Edit Date</button>
 
           <form class="editor-card" id="editor" hidden>
             <input id="meetingTime" name="meetingTime" type="datetime-local" required>
@@ -372,10 +481,17 @@
     const hoursEl = document.getElementById("hours");
     const minutesEl = document.getElementById("minutes");
     const secondsEl = document.getElementById("seconds");
+    const timerEl = document.querySelector(".timer");
+    const timeViewEl = document.getElementById("timeView");
+    const viewToggleButton = document.getElementById("viewToggleButton");
+    const cestDateEl = document.getElementById("cestDate");
+    const cestTimeEl = document.getElementById("cestTime");
+    const cestZoneEl = document.getElementById("cestZone");
     const editButton = document.getElementById("editButton");
     const editorForm = document.getElementById("editor");
     const cancelEditButton = document.getElementById("cancelEditButton");
     const meetingTimeInput = document.getElementById("meetingTime");
+    let showingTimeView = false;
 
     function getDefaultMeetingDate() {
       const date = new Date();
@@ -424,9 +540,40 @@
       editButton.hidden = false;
     }
 
+    function formatCestParts(date) {
+      const parts = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Berlin",
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZoneName: "short",
+        hour12: false
+      }).formatToParts(date);
+
+      const readPart = (type) => parts.find((part) => part.type === type)?.value ?? "";
+
+      return {
+        date: `${readPart("day")}/${readPart("month")}`,
+        time: `${readPart("hour")}:${readPart("minute")}`,
+        zone: readPart("timeZoneName") || "CEST"
+      };
+    }
+
+    function renderViewMode() {
+      timerEl.hidden = showingTimeView;
+      timeViewEl.hidden = !showingTimeView;
+      viewToggleButton.textContent = showingTimeView ? "Countdown" : "Time";
+    }
+
     function renderCountdown() {
       const now = new Date();
       const diff = targetDate.getTime() - now.getTime();
+      const cestParts = formatCestParts(targetDate);
+
+      cestDateEl.textContent = cestParts.date;
+      cestTimeEl.textContent = cestParts.time;
+      cestZoneEl.textContent = cestParts.zone;
 
       if (diff <= 0) {
         daysEl.textContent = "00";
@@ -461,10 +608,16 @@
       closeEditor();
     });
 
+    viewToggleButton.addEventListener("click", () => {
+      showingTimeView = !showingTimeView;
+      renderViewMode();
+    });
+
     editButton.addEventListener("click", openEditor);
     cancelEditButton.addEventListener("click", closeEditor);
 
     renderCountdown();
+    renderViewMode();
     setInterval(renderCountdown, 1000);
   </script>
 </body>
