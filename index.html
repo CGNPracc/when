@@ -476,7 +476,10 @@
   </div>
 
   <script>
-    const DEFAULT_TARGET_ISO = "2026-04-09T18:00:00.000Z";
+    const BLOB_ID = "019d6bda-aedb-7a13-9434-4bdeb7faa7bb";
+    const BLOB_URL = `https://jsonblob.com/api/jsonBlob/${BLOB_ID}`;
+    const FALLBACK_TARGET_ISO = "2026-04-09T18:00:00.000Z";
+
     const daysEl = document.getElementById("days");
     const hoursEl = document.getElementById("hours");
     const minutesEl = document.getElementById("minutes");
@@ -492,45 +495,67 @@
     const cancelEditButton = document.getElementById("cancelEditButton");
     const meetingTimeInput = document.getElementById("meetingTime");
     let showingTimeView = false;
+    let targetDate = new Date(FALLBACK_TARGET_ISO);
 
-    function getDateFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      const isoValue = params.get("meeting");
-      if (!isoValue) {
-        return null;
+    /* Convert a UTC Date to a "YYYY-MM-DDTHH:MM" string in Europe/Berlin tz
+       so the <input datetime-local> always shows CEST/CET values */
+    function toCestInputValue(date) {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Berlin",
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hour12: false
+      }).formatToParts(date);
+      const get = (t) => parts.find((p) => p.type === t)?.value ?? "00";
+      return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`;
+    }
+
+    /* Convert a "YYYY-MM-DDTHH:MM" value (interpreted as Europe/Berlin)
+       into a UTC Date. We do this by formatting a known epoch in Berlin
+       to find the current UTC offset, then applying it. */
+    function cestInputToUTC(localStr) {
+      // Create a date treating the input as UTC first
+      const naive = new Date(localStr + ":00Z");
+      // Find Berlin's offset at that moment
+      const berlinStr = naive.toLocaleString("en-US", { timeZone: "Europe/Berlin" });
+      const berlinDate = new Date(berlinStr);
+      const offsetMs = berlinDate.getTime() - naive.getTime();
+      return new Date(naive.getTime() - offsetMs);
+    }
+
+    /* ---------- Remote storage ---------- */
+
+    async function fetchTarget() {
+      try {
+        const res = await fetch(BLOB_URL);
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+        const d = new Date(data.target);
+        if (!Number.isNaN(d.getTime())) {
+          targetDate = d;
+        }
+      } catch {
+        /* use fallback */
       }
-
-      const parsedDate = new Date(isoValue);
-      return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+      meetingTimeInput.value = toCestInputValue(targetDate);
+      renderCountdown();
     }
 
-    function formatForInput(date) {
-      const pad = (value) => String(value).padStart(2, "0");
-      return [
-        date.getFullYear(),
-        pad(date.getMonth() + 1),
-        pad(date.getDate())
-      ].join("-") + "T" + [
-        pad(date.getHours()),
-        pad(date.getMinutes())
-      ].join(":");
+    async function saveTarget(date) {
+      try {
+        await fetch(BLOB_URL, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target: date.toISOString() })
+        });
+      } catch {
+        /* silent – local countdown still updates */
+      }
     }
 
-    function updateUrlMeeting(date) {
-      const url = new URL(window.location.href);
-      url.searchParams.set("meeting", date.toISOString());
-      window.history.replaceState({}, "", url);
-    }
-
-    const urlTargetDate = getDateFromUrl();
-    let targetDate = urlTargetDate ?? new Date(DEFAULT_TARGET_ISO);
-    if (!urlTargetDate) {
-      updateUrlMeeting(targetDate);
-    }
-    meetingTimeInput.value = formatForInput(targetDate);
+    /* ---------- UI helpers ---------- */
 
     function openEditor() {
-      meetingTimeInput.value = formatForInput(targetDate);
+      meetingTimeInput.value = toCestInputValue(targetDate);
       editorForm.hidden = false;
       editButton.hidden = true;
       meetingTimeInput.focus();
@@ -595,18 +620,16 @@
       }
     }
 
+    /* ---------- Events ---------- */
+
     editorForm.addEventListener("submit", (event) => {
       event.preventDefault();
-
-      const nextDate = new Date(meetingTimeInput.value);
-      if (Number.isNaN(nextDate.getTime())) {
-        return;
-      }
-
-      targetDate = nextDate;
-      updateUrlMeeting(targetDate);
+      const utcDate = cestInputToUTC(meetingTimeInput.value);
+      if (Number.isNaN(utcDate.getTime())) return;
+      targetDate = utcDate;
       renderCountdown();
       closeEditor();
+      saveTarget(targetDate);
     });
 
     viewToggleButton.addEventListener("click", () => {
@@ -617,8 +640,11 @@
     editButton.addEventListener("click", openEditor);
     cancelEditButton.addEventListener("click", closeEditor);
 
-    renderCountdown();
+    /* ---------- Init ---------- */
+
     renderViewMode();
+    renderCountdown();
+    fetchTarget();
     setInterval(renderCountdown, 1000);
   </script>
 </body>
