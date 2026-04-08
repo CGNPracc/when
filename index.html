@@ -551,11 +551,11 @@
     }
 
     function cestInputToUTC(localStr) {
-      const naive = new Date(localStr + ":00Z");
-      const berlinStr = naive.toLocaleString("en-US", { timeZone: "Europe/Berlin" });
-      const berlinDate = new Date(berlinStr);
-      const offsetMs = berlinDate.getTime() - naive.getTime();
-      return new Date(naive.getTime() - offsetMs);
+      const guess = new Date(localStr + ":00Z");
+      const berlinStr = guess.toLocaleString("sv-SE", { timeZone: "Europe/Berlin" });
+      const berlinAsUTC = new Date(berlinStr.replace(" ", "T") + "Z");
+      const offsetMs = berlinAsUTC.getTime() - guess.getTime();
+      return new Date(guess.getTime() - offsetMs);
     }
 
     /* ---------- Firebase REST API ---------- */
