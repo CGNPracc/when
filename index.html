@@ -500,8 +500,6 @@
           <form class="editor-card" id="editor" hidden>
             <label class="field-label" for="meetingTime">Date &amp; Time (CEST)</label>
             <input id="meetingTime" name="meetingTime" type="datetime-local" required>
-            <label class="field-label" for="ghToken">GitHub Token</label>
-            <input id="ghToken" name="ghToken" type="password" placeholder="ghp_…" autocomplete="off">
             <p class="editor-status" id="editorStatus"></p>
             <div class="editor-actions">
               <button class="secondary-button" id="cancelEditButton" type="button">Cancel</button>
@@ -514,12 +512,11 @@
   </div>
 
   <script>
-    const REPO_OWNER = "CGNPracc";
-    const REPO_NAME = "when";
-    const FILE_PATH = "target.json";
-    const API_BASE = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${FILE_PATH}`;
+    /* ── FIREBASE CONFIG ──
+       Replace DB_URL with your Firebase Realtime Database URL.
+       See setup instructions in the README. */
+    const DB_URL = "https://cgntimer-52aba-default-rtdb.europe-west1.firebasedatabase.app";
     const FALLBACK_TARGET_ISO = "2026-04-09T18:00:00.000Z";
-    const TOKEN_KEY = "cgn_gh_token";
 
     const daysEl = document.getElementById("days");
     const hoursEl = document.getElementById("hours");
@@ -535,16 +532,11 @@
     const editorForm = document.getElementById("editor");
     const cancelEditButton = document.getElementById("cancelEditButton");
     const meetingTimeInput = document.getElementById("meetingTime");
-    const ghTokenInput = document.getElementById("ghToken");
     const statusEl = document.getElementById("editorStatus");
     const saveButton = document.getElementById("saveButton");
 
     let showingTimeView = false;
     let targetDate = new Date(FALLBACK_TARGET_ISO);
-    let fileSha = null;
-
-    /* Restore saved token */
-    ghTokenInput.value = localStorage.getItem(TOKEN_KEY) || "";
 
     /* ---------- Timezone helpers ---------- */
 
@@ -566,20 +558,16 @@
       return new Date(naive.getTime() - offsetMs);
     }
 
-    /* ---------- GitHub API ---------- */
+    /* ---------- Firebase REST API ---------- */
 
     async function fetchTarget() {
       try {
-        const res = await fetch(API_BASE, {
-          headers: { "Accept": "application/vnd.github.v3+json" }
-        });
+        const res = await fetch(`${DB_URL}/meeting.json`);
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
-        fileSha = data.sha;
-        const content = JSON.parse(atob(data.content));
-        const d = new Date(content.target);
-        if (!Number.isNaN(d.getTime())) {
-          targetDate = d;
+        if (data && data.target) {
+          const d = new Date(data.target);
+          if (!Number.isNaN(d.getTime())) targetDate = d;
         }
       } catch {
         /* use fallback */
@@ -588,50 +576,16 @@
       renderCountdown();
     }
 
-    async function saveTarget(date, token) {
+    async function saveTarget(date) {
       setStatus("Saving…", "loading");
       saveButton.disabled = true;
-
-      /* We need the latest sha to update the file */
       try {
-        const getRes = await fetch(API_BASE, {
-          headers: { "Accept": "application/vnd.github.v3+json" }
-        });
-        if (getRes.ok) {
-          const getData = await getRes.json();
-          fileSha = getData.sha;
-        }
-      } catch { /* proceed with existing sha */ }
-
-      const body = {
-        message: `Update meeting time to ${date.toISOString()}`,
-        content: btoa(JSON.stringify({ target: date.toISOString() }, null, 2) + "\n"),
-      };
-      if (fileSha) body.sha = fileSha;
-
-      try {
-        const res = await fetch(API_BASE, {
+        const res = await fetch(`${DB_URL}/meeting.json`, {
           method: "PUT",
-          headers: {
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": `token ${token}`,
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(body)
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ target: date.toISOString() })
         });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          if (res.status === 401 || res.status === 403) {
-            localStorage.removeItem(TOKEN_KEY);
-            throw new Error("Invalid or expired token");
-          }
-          throw new Error(err.message || res.statusText);
-        }
-
-        const result = await res.json();
-        fileSha = result.content.sha;
-        localStorage.setItem(TOKEN_KEY, token);
+        if (!res.ok) throw new Error("Failed to save");
         setStatus("Saved!", "success");
         setTimeout(() => { setStatus(""); closeEditor(); }, 1200);
       } catch (e) {
@@ -650,7 +604,6 @@
 
     function openEditor() {
       meetingTimeInput.value = toCestInputValue(targetDate);
-      ghTokenInput.value = localStorage.getItem(TOKEN_KEY) || "";
       setStatus("");
       editorForm.hidden = false;
       editButton.hidden = true;
@@ -720,13 +673,11 @@
 
     editorForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      const token = ghTokenInput.value.trim();
-      if (!token) { setStatus("Token required", "error"); return; }
       const utcDate = cestInputToUTC(meetingTimeInput.value);
       if (Number.isNaN(utcDate.getTime())) return;
       targetDate = utcDate;
       renderCountdown();
-      saveTarget(targetDate, token);
+      saveTarget(targetDate);
     });
 
     viewToggleButton.addEventListener("click", () => {
