@@ -476,7 +476,7 @@
   </div>
 
   <script>
-    const storageKey = "cgn-discord-meeting-time";
+    const DEFAULT_TARGET_ISO = "2026-04-09T18:00:00.000Z";
     const daysEl = document.getElementById("days");
     const hoursEl = document.getElementById("hours");
     const minutesEl = document.getElementById("minutes");
@@ -493,11 +493,15 @@
     const meetingTimeInput = document.getElementById("meetingTime");
     let showingTimeView = false;
 
-    function getDefaultMeetingDate() {
-      const date = new Date();
-      date.setDate(date.getDate() + 1);
-      date.setHours(20, 0, 0, 0);
-      return date;
+    function getDateFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const isoValue = params.get("meeting");
+      if (!isoValue) {
+        return null;
+      }
+
+      const parsedDate = new Date(isoValue);
+      return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
     }
 
     function formatForInput(date) {
@@ -512,20 +516,17 @@
       ].join(":");
     }
 
-    function loadMeetingDate() {
-      const savedValue = localStorage.getItem(storageKey);
-      const parsedSavedValue = savedValue ? new Date(savedValue) : null;
-
-      if (parsedSavedValue && !Number.isNaN(parsedSavedValue.getTime())) {
-        return parsedSavedValue;
-      }
-
-      const defaultDate = getDefaultMeetingDate();
-      localStorage.setItem(storageKey, defaultDate.toISOString());
-      return defaultDate;
+    function updateUrlMeeting(date) {
+      const url = new URL(window.location.href);
+      url.searchParams.set("meeting", date.toISOString());
+      window.history.replaceState({}, "", url);
     }
 
-    let targetDate = loadMeetingDate();
+    const urlTargetDate = getDateFromUrl();
+    let targetDate = urlTargetDate ?? new Date(DEFAULT_TARGET_ISO);
+    if (!urlTargetDate) {
+      updateUrlMeeting(targetDate);
+    }
     meetingTimeInput.value = formatForInput(targetDate);
 
     function openEditor() {
@@ -603,7 +604,7 @@
       }
 
       targetDate = nextDate;
-      localStorage.setItem(storageKey, targetDate.toISOString());
+      updateUrlMeeting(targetDate);
       renderCountdown();
       closeEditor();
     });
